@@ -1,7 +1,7 @@
 ehx
 ===
 
-A templating system that embeds haXe into a text document. Uses [hscript](http://code.google.com/p/hscript/) for parsing haXe in runtime. 
+A templating system that embeds haXe into a text document using a similar syntax as [eRuby](http://en.wikipedia.org/wiki/ERuby). Uses [hscript](http://code.google.com/p/hscript/) for parsing haXe in runtime. 
 
 
 Usage examples:
