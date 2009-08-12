@@ -8,11 +8,11 @@ class Ehx {
 	    processor = new CmdProcessor();
 	}
 	
-	public function render( file , ?scope : Dynamic = null ) {
+	public function render( file , ?context : Dynamic = null ) {
 		var startTime = haxe.Timer.stamp();
 		
-		if( scope != null )
-			processor.addScope( scope );
+		if( context != null )
+			processor.addContext( context );
 		
 		var r = ~/<%(.*?)%>/sm;
 		var results = "";
@@ -63,7 +63,7 @@ class Ehx {
 	
 	public static function main() {
 		var ehx = new Ehx();
-		var scope = {
+		var context = {
 			str: "hello there",
 			num: 12,
 			arr: ["abc",123],
@@ -71,7 +71,7 @@ class Ehx {
 				return "this is from a function!";
 			}
 		}
-		trace( ehx.render( neko.io.File.getContent( "index.ehx" ) , scope ) );
+		trace( ehx.render( neko.io.File.getContent( "index.ehx" ) , context ) );
 	}
 }
 
@@ -140,9 +140,9 @@ class CmdProcessor {
 		var _:haxe.Unserializer;
 	}
 	
-	public function addScope( scope : Dynamic ) {
-		for( field in Reflect.fields( scope ) )
-			interp.variables.set( field , Reflect.field( scope , field ) );
+	public function addContext( context : Dynamic ) {
+		for( field in Reflect.fields( context ) )
+			interp.variables.set( field , Reflect.field( context , field ) );
 	}
 
 	/**

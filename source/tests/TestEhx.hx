@@ -28,21 +28,21 @@ class TestSyntax extends haxe.unit.TestCase, implements haxe.Public {
 	}
 	
 	function testScopedVariable() {
-		var scope = { str: "hello world" };
+		var context = { str: "hello world" };
 		var markup = "<% print( str ) %>";
-		assertEquals( "hello world" , ehx.render( markup , scope ) );
+		assertEquals( "hello world" , ehx.render( markup , context ) );
 	}
 	
 	function testScopedArray() {
-		var scope = { arr: ["one",2] };
+		var context = { arr: ["one",2] };
 		var markup = "<% print( arr.join(\"#\") ) %>";
-		assertEquals( "one#2" , ehx.render( markup , scope ) );
+		assertEquals( "one#2" , ehx.render( markup , context ) );
 	}
 	
 	function testScopedFunction() {
-		var scope = { func: function() { return "from func!"; } };
+		var context = { func: function() { return "from func!"; } };
 		var markup = "<% print( func() ) %>";
-		assertEquals( "from func!" , ehx.render( markup , scope ) );
+		assertEquals( "from func!" , ehx.render( markup , context ) );
 	}
 	
 	function testQuickPrint() {
@@ -64,9 +64,9 @@ class TestFixtures extends haxe.unit.TestCase {
 		ehx = new ehx.Ehx();
 	}
 	
-	function assertFixture( name , ?scope : Dynamic = null ) {
+	function assertFixture( name , ?context : Dynamic = null ) {
 		try {
-			assertEquals( neko.io.File.getContent( fixturesPath + name + ".html" ) , ehx.render( neko.io.File.getContent( fixturesPath + name + ".ehx" ) , scope ) );
+			assertEquals( neko.io.File.getContent( fixturesPath + name + ".html" ) , ehx.render( neko.io.File.getContent( fixturesPath + name + ".ehx" ) , context ) );
 		} catch( test : haxe.unit.TestStatus ) {	
 			var r = ~/expected '(.+)' but was '(.+)'/gs;
 			if( r.match( test.error ) ) {
