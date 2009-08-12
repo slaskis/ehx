@@ -28,10 +28,9 @@ class Ehx {
 				var block = ~/\n/.replace( r.matchedLeft() , "\\n" );
 				command = "print( '" + block + "' );" + command;
 			}
-			trace( "command: " + command );
+		//	trace( "command: " + command );
 			try {
 				var res = processor.process( command );
-				trace( "Process: " + res );
 				if( res != null ) 
 					results += res;
 				inBlock = false;
@@ -50,7 +49,7 @@ class Ehx {
 		}
 		results += str;
 		
-		trace( "(" + ( haxe.Timer.stamp() - startTime ) + " ms) Results: " + results );
+	//	trace( "(" + ( haxe.Timer.stamp() - startTime ) + " ms) Results: " + results );
 		
 		return results;
 	}
@@ -122,6 +121,8 @@ class CmdProcessor {
 		for( cc in rootClasses )
 			if( interp.variables.get(cc) == null )
 				trace("fail: " + cc);
+				
+		// TODO Maybe we can use the neko.Lib.getClasses() instead of the list above?
 
 		var _:DateTools;
 		var _:Xml;
@@ -180,7 +181,7 @@ class CmdProcessor {
 		if( ~/print\(/smg.match( cmdStr ) )
 			cmdStr = "function(){ __programreturn = \"\";" + replacePrint( cmdStr ) + "return __programreturn; }();";
 		
-		trace( "preprocessed:" + cmdStr );
+	//	trace( "preprocessed:" + cmdStr );
 		
 		return cmdStr;
 	}
@@ -213,14 +214,14 @@ class CmdProcessor {
 		var indent = 0;
 		var index = 0;
 		var char;
-		trace( "Finding the last ) in: " + str );
+//		trace( "Finding the last ) in: " + str );
 		while( ( char = str.charAt( index ) ) != null ) {
 			if( char == "(" ) {
 				indent++;
-				trace( index + " , " + indent );
+//				trace( index + " , " + indent );
 			} else if( char == ")" ) {
 				indent--;
-				trace( index + " , " + indent );
+//				trace( index + " , " + indent );
 				if( indent == -1 ) 
 					return index;
 			}

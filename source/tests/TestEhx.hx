@@ -4,6 +4,7 @@ class TestEhx {
 	static function main() {
 		var r = new haxe.unit.TestRunner();
         r.add( new TestSyntax() );
+        r.add( new TestFixtures() );
         r.run();
 	}
 }
@@ -47,6 +48,47 @@ class TestSyntax extends haxe.unit.TestCase, implements haxe.Public {
 	function testQuickPrint() {
 		var markup = "<%= \"hello\" %>";
 		assertEquals( "hello" , ehx.render( markup ) );
+	}
+	
+}
+
+class TestFixtures extends haxe.unit.TestCase {
+	
+	var ehx : ehx.Ehx;
+	
+	// TODO Is there a way to get the path to the executable?
+	static var fixturesPath : String = neko.Sys.getCwd() + "public/fixtures/";
+	
+	override function setup() {
+		trace( neko.Sys.getCwd() );
+		ehx = new ehx.Ehx();
+	}
+	
+	function assertFixture( name , ?scope : Dynamic = null ) {
+		try {
+			assertEquals( neko.io.File.getContent( fixturesPath + name + ".html" ) , ehx.render( neko.io.File.getContent( fixturesPath + name + ".ehx" ) , scope ) );
+		} catch( test : haxe.unit.TestStatus ) {	
+			var r = ~/expected '(.+)' but was '(.+)'/gs;
+			if( r.match( test.error ) ) {
+				var exp = r.matched( 1 );
+				var act = r.matched( 2 );
+				test.error = "Diff: " + mtwin.text.Diff.diff( exp , act );
+			}
+			throw test;
+		}
+	}
+	
+	function testScoped() {
+		assertFixture( "scoped" , {
+			items: [
+				{ name: "one" },
+				{ name: "two" }
+			]
+		} );
+	}
+	
+	function testNone() {
+		assertFixture( "none" );
 	}
 	
 }
