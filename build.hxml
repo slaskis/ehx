@@ -3,5 +3,11 @@
 -debug
 -neko public/ehx.n
 -lib hscript
--lib ihx
--main Ehx
+-main ehx.Ehx
+
+--next
+-cp source
+-debug
+-neko public/tests.n
+-lib hscript
+-main tests.TestEhx
