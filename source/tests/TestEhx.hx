@@ -45,6 +45,23 @@ class TestSyntax extends haxe.unit.TestCase, implements haxe.Public {
 		assertEquals( "from func!" , ehx.render( markup , context ) );
 	}
 	
+	function testOneLineCode() {
+		var markup = "% print( \"oneliner\")";
+		assertEquals( "oneliner" , ehx.render( markup ) );
+	}
+	
+	function testOneLineQuickPrint() {
+		var markup = "
+% echo = \"oneliner\"
+%= echo";
+		assertEquals( "oneliner" , ehx.render( markup ) );
+	}
+	
+	function testOneLineComment() {
+		var markup = "%// print( \"comment\")";
+		assertEquals( "" , ehx.render( markup ) );
+	}
+	
 	function testQuickPrint() {
 		var markup = "<%= \"hello\" %>";
 		assertEquals( "hello" , ehx.render( markup ) );
@@ -89,6 +106,17 @@ class TestFixtures extends haxe.unit.TestCase {
 	
 	function testNone() {
 		assertFixture( "none" );
+	}
+	
+	function testMixed() {
+		assertFixture( "mixed" , {
+			str: "hello there",
+			num: 12,
+			arr: ["abc",123],
+			func: function() {
+				return "this is from a function!";
+			}
+		} );
 	}
 	
 }

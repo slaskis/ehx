@@ -4,8 +4,8 @@ ehx
 A templating system that embeds haXe into a text document using a similar syntax as [eRuby](http://en.wikipedia.org/wiki/ERuby). Uses [hscript](http://code.google.com/p/hscript/) for parsing haXe in runtime. 
 
 
-Usage examples:
----------------
+Syntax examples:
+----------------
 
 ### loop.ehx
 	<% 
@@ -67,11 +67,7 @@ Usage examples:
 	2
 	
 	
-	
-### linecomment.ehx
-	// This is a comment
-	// % print( "this won't print" );
-	% print( "this will." );
-	
-#### results in:
-	this will.
+TODO
+----
+
+* 

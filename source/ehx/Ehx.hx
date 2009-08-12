@@ -14,14 +14,14 @@ class Ehx {
 		if( context != null )
 			processor.addContext( context );
 		
-		var r = ~/<%(.*?)%>/sm;
+		var r = ~/<%(.*?)%>|^%([^\n]*)$/sm;
 		var results = "";
 		var command = "";
 		var str = file;
 		var inBlock = false;
 		while( r.match( str ) ) {
-			command = r.matched(1);
-			command = preprocessCmd( command );
+			command = if( r.matched(1) != null ) r.matched(1) else r.matched(2);
+ 			command = preprocessCmd( command );
 			if( !inBlock )
 				results += r.matchedLeft();
 			else {
@@ -55,23 +55,10 @@ class Ehx {
 	}
 	
 	function preprocessCmd( cmd : String ) : String {
-		if( StringTools.startsWith( cmd , "=" ) ) {
+		if( cmd != null && StringTools.startsWith( cmd , "=" ) ) {
 			cmd = "print("+StringTools.ltrim( cmd.substr( 1 ) ) + ");";
 		}
 		return cmd;
-	}
-	
-	public static function main() {
-		var ehx = new Ehx();
-		var context = {
-			str: "hello there",
-			num: 12,
-			arr: ["abc",123],
-			func: function() {
-				return "this is from a function!";
-			}
-		}
-		trace( ehx.render( neko.io.File.getContent( "index.ehx" ) , context ) );
 	}
 }
 
@@ -181,7 +168,7 @@ class CmdProcessor {
 		if( ~/print\(/smg.match( cmdStr ) )
 			cmdStr = "function(){ __programreturn = \"\";" + replacePrint( cmdStr ) + "return __programreturn; }();";
 		
-	//	trace( "preprocessed:" + cmdStr );
+		trace( "preprocessed:" + cmdStr );
 		
 		return cmdStr;
 	}
