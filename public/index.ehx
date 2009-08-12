@@ -1,0 +1,23 @@
+<html>
+	<head>
+		<title>Testing Ehx</title>
+	</head>
+	<body>
+		<% 
+		for( i in 0...3 ) 
+			print( "hello world " + i + "\n\t\t" ); 
+		%>
+		<% for( str in ["a","b","c"] ) { %>
+		<p><%= str %></p>
+		<% } %>
+		
+		<% hello = "echo" %>
+		
+		String from locally set variable: <%= hello %>
+		
+		String from scope: <%= str %>
+		Array from scope: <%= arr.join("#"); %>
+		Number from scope: <%= num %>
+		Function form a scope: <%= func(); %>
+	</body>
+</html>

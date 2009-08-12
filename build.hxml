@@ -1,0 +1,7 @@
+#build file
+-cp source
+-debug
+-neko public/ehx.n
+-lib hscript
+-lib ihx
+-main Ehx
