@@ -77,8 +77,16 @@ TODO
 	*	column position
 	*	stacktrace
 	*	a small excerpt surrounding the "failed area" would be ideal.
-*	Test if it's possible to add `this` as a context and allow hscript to access all public(?) properties of the class calling it.
-*	Allow for adding more contexts (like if we have a "Helper"-class)
-*	Test if a StringBuf is really faster than a regular String +=.
+*	Allow for adding more contexts (like if we have a "Helper"-class besides the passed in context)
 *	Write more tests, more specific and bigger fixtures.
+*	Add a command line version:
+	*	May pass in a file path as an argument.
+	*	May pass the text stream with STDIN (pipe-friendly).
+	*	Returns the converted file to STDOUT (pipe-friendly).
+	*	Need to be able to pass a "context" into it, maybe using hscript or json? -context or -ctx arguments, may be file paths or a direct string?.
+	*	Can be run either by using the "ehx"-executable (nekotools boot) or haxelib run ehx (is it possible to pass arguments?)
+	*	Problem with making an executable (atleast when using my macports): dyld: Library not loaded: @executable_path/../lib/libneko.dylib
+*	To be able to ignore the output of the line with the <%%>, like with <% -%> in erb. For a cleaner output.
+*	Allow to pass a context with JSON format (mostly to the executable).
+*	Fix the problems with using the -ctx argument, the arguments get stripped of " and ' and is split on spaces. STDIN way still works though.
  

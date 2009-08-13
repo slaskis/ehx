@@ -3,3 +3,16 @@
 -neko public/tests.n
 -lib hscript
 -main tests.TestEhx
+
+--next
+-cp source
+-debug
+-neko public/testcontroller.n
+-lib hscript
+-main tests.TestController
+
+--next
+-cp source
+-neko public/ehx.n
+-lib hscript
+-main ehx.Ehx

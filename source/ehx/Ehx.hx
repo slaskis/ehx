@@ -1,5 +1,7 @@
 package ehx;
 
+import neko.io.File;
+
 class Ehx {
 	
 	public static var DEBUG : Bool = false;
@@ -47,14 +49,15 @@ class Ehx {
 				inBlock = false;
 			} catch (ex:CmdError) {
 				switch( ex ) {
+				    // TODO Can we analyze these errors more? I'd like to know where in the source they are.
 					case IncompleteStatement:
 						if( Ehx.DEBUG )
 							trace("Incomplete ... "); // continue prompt
 						inBlock = true;
 					case InvalidStatement:
-						trace("Syntax error. " + ex);
+						throw("Syntax error. " + ex);
 					case InvalidCommand(cmd):
-						trace("Execution error. " + cmd);
+						throw("Execution error. " + cmd);
 				}
 			}
 			try { str = r.matchedRight(); } catch( e : Dynamic ) {}
@@ -72,6 +75,110 @@ class Ehx {
 			cmd = "print("+StringTools.trim( cmd.substr( 1 ) ) + ");";
 		}
 		return cmd;
+	}
+	
+	static function main() {
+		trace( "Args:" + neko.Sys.args() );
+		
+		var help = "ehx [-ctx context] inputfile
+	
+Possible arguments:
+    -h,-? (or nothing)	    Show the list of arguments (you'know, the thing your reading now).
+    -v                      Verbose mode.						
+    -c,-ctx,-context        The context (think JSON) to use while rendering the inputfile. 
+                            If it's not a file it assumes it's \"inlined\".
+                            A context must be within curly brackets \"{}\", ex. \"{ id: 12 }\".
+
+Usage examples:
+
+    1.	A simple load/parse of a text document file.
+         > ehx index.ehx
+
+    2.	Loading an ehx text document with an inlined context.
+         > ehx -ctx name=steve steve.ehx 
+ 
+            STDIN will be the context if there's already an input file and no context set.
+
+    3.	Passing an ehx document through STDIN.
+         > echo \"<%= 'hello' %>\" | ehx
+
+    4.	Passing an ehx document through STDIN with an inline context.
+         > echo \"<%= 'hey there ' + name %>\" | ehx -ctx { name:\"steve\" }
+
+    5.	Using an external context.
+         > ehx -ctx context.hscript info.ehx
+         
+    6.  Passing a context through STDIN.
+         > echo \"str='hej';num=123\" | neko public/ehx.n public/fixtures/mixed.ehx
+
+";
+		
+		// No arguments or stdin, just show the help.
+		if( !hasStdIn() && neko.Sys.args().length == 0 ) {
+			neko.Lib.print( help );
+			return;
+		}
+		
+		var arg, context = "", input = "";
+		var args = neko.Sys.args();
+		while( ( arg = args.shift() ) != null ) {
+		    switch( arg ) {
+		        case "-c","-ctx","-context":
+		            var ctx = args.shift();
+		            context = if( neko.FileSystem.exists( ctx ) ) neko.io.File.getContent( ctx ) else ctx;
+		        case "-h","-help","-?":
+            		neko.Lib.print( help );
+        			return;
+        		case "-v":
+        		    neko.Lib.println( "No verbose mode yet. But thanks for trying!" );
+        		    return;
+		        default:
+		            if( args.length == 0 && neko.FileSystem.exists( arg ) ) 
+		                input = neko.io.File.getContent( arg );
+		            else {
+		                neko.Lib.println( "Invalid argument." );
+                		neko.Lib.print( help );
+            			return;
+        			}
+		    }
+		}
+		
+		// If we have a stdin, an inputfile and no context the stdin is the context, otherwise it's the input.
+		if( hasStdIn() ) {
+		    var stdin = neko.io.File.stdin().readAll().toString();
+		    if( context.length == 0 && input.length > 0 ) 
+		        context = stdin;
+		    else 
+		        input = stdin;
+		}
+        
+        trace( "context: " + context );
+        trace( "input: " + input );
+        
+        if( input == "" ) {
+            neko.Lib.println( "Missing input." );
+        	neko.Lib.print( help );
+    		return;
+        }
+        
+        // All tests have passed, do the magic!
+        var ehx = new Ehx();
+        var output = "";
+        try { 
+            output = ehx.render( input , context );
+        } catch( e : Dynamic ) {
+            neko.io.File.stderr().writeString( Std.string( e ) );
+        }
+        trace( output );
+        neko.io.File.stdout().writeString( output );
+	}
+	
+	static function hasStdIn() : Bool {
+		try {
+		    return false;
+	    } catch( e : Dynamic ) {
+	        return true;
+	    };
 	}
 }
 
@@ -143,6 +250,11 @@ class CmdProcessor {
 	}
 	
 	public function addContext( context : Dynamic ) {
+	    if( Std.is( context , String ) ) {
+	        // Attempt to parse it with hscript first.
+	        context = interp.execute(parser.parseString(context));
+	    }
+	    
 		for( field in Reflect.fields( context ) )
 			interp.variables.set( field , Reflect.field( context , field ) );
 	}
