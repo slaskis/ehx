@@ -2,42 +2,54 @@ package ehx;
 
 class Ehx {
 	
+	public static var DEBUG : Bool = false;
+	
+	static var EREG_CODE_BLOCK : EReg = ~/<%(.*?)%>|^%(.*?)$/sm;
+	static var EREG_SPACE_ONLY : EReg = ~/^[\s\n]*$/sg;
+	
 	var processor : CmdProcessor;
 	
 	public function new() {
 	    processor = new CmdProcessor();
 	}
 	
-	public function render( file , ?context : Dynamic = null ) {
+	public function render( str , ?context : Dynamic = null ) {
 		var startTime = haxe.Timer.stamp();
 		
 		if( context != null )
 			processor.addContext( context );
 		
-		var r = ~/<%(.*?)%>|^%([^\n]*)$/sm;
-		var results = "";
-		var command = "";
-		var str = file;
+		var r = EREG_CODE_BLOCK;
+		var results = new StringBuf();
 		var inBlock = false;
 		while( r.match( str ) ) {
-			command = if( r.matched(1) != null ) r.matched(1) else r.matched(2);
+			var command = if( r.matched(1) != null ) r.matched(1) else r.matched(2);
  			command = preprocessCmd( command );
-			if( !inBlock )
-				results += r.matchedLeft();
-			else {
-				var block = ~/\n/.replace( r.matchedLeft() , "\\n" );
+			if( !inBlock ) {
+				if( !EREG_SPACE_ONLY.match( r.matchedLeft() ) )
+					results.add( r.matchedLeft() );
+			} else {
+				// Adds the data inside a block (between "{ %>" and "<%") to the results
+				var block = StringTools.replace( r.matchedLeft() , "\n" , "\\n" );
 				command = "print( '" + block + "' );" + command;
 			}
-		//	trace( "command: " + command );
 			try {
 				var res = processor.process( command );
-				if( res != null ) 
-					results += res;
+				if( Ehx.DEBUG )
+					trace( "---------------------------" );
+				if( Ehx.DEBUG )
+					trace( "command: " + command + "\nresult: " + res );
+				if( res != null && !EREG_SPACE_ONLY.match( res ) ) {
+					if( Ehx.DEBUG )
+						trace( "Added to results: " + results );
+					results.add( res );
+				}
 				inBlock = false;
 			} catch (ex:CmdError) {
 				switch( ex ) {
 					case IncompleteStatement:
-						trace("Incomplete ... "); // continue prompt
+						if( Ehx.DEBUG )
+							trace("Incomplete ... "); // continue prompt
 						inBlock = true;
 					case InvalidStatement:
 						trace("Syntax error. " + ex);
@@ -47,16 +59,17 @@ class Ehx {
 			}
 			try { str = r.matchedRight(); } catch( e : Dynamic ) {}
 		}
-		results += str;
+		results.add( str );
 		
-	//	trace( "(" + ( haxe.Timer.stamp() - startTime ) + " ms) Results: " + results );
+		if( Ehx.DEBUG )
+			trace( "(" + ( haxe.Timer.stamp() - startTime ) + " ms) Results: " + results );
 		
-		return results;
+		return results.toString();
 	}
 	
 	function preprocessCmd( cmd : String ) : String {
 		if( cmd != null && StringTools.startsWith( cmd , "=" ) ) {
-			cmd = "print("+StringTools.ltrim( cmd.substr( 1 ) ) + ");";
+			cmd = "print("+StringTools.trim( cmd.substr( 1 ) ) + ");";
 		}
 		return cmd;
 	}
@@ -87,6 +100,8 @@ class CmdProcessor {
 
 	/** list of non-class builtin variables **/
 	private var builtins : List<String>;
+
+	var noReturn : Bool;
 
 	public function new() {
 		sb = new StringBuf();
@@ -137,23 +152,29 @@ class CmdProcessor {
 	**/
 	public function process(cmd) : String {
 		sb.add(cmd);
+		noReturn = false;
 		var ret;
 		try {
 			var cmdStr = preprocess(sb.toString());
 			ret = interp.execute(parser.parseString(cmdStr));
 		} catch (ex:Error) {
-			trace( ex );
-			if( Type.enumConstructor(ex) == "EUnexpected" && Type.enumParameters(ex)[0] == "<eof>" 
-				|| Type.enumConstructor(ex) == "EUnterminatedString" || Type.enumConstructor(ex) == "EUnterminatedComment") {
+			if( Ehx.DEBUG )
+				trace( ex );
+			var e = Type.enumConstructor(ex);
+			var p = Type.enumParameters(ex);
+			if( e == "EUnexpected" && p[0] == "<eof>" || 
+				e == "EUnterminatedString" || 
+				e == "EUnterminatedComment") {
 				throw IncompleteStatement;
 			}
 			sb = new StringBuf();
-			if( Type.enumConstructor(ex) == "EInvalidChar" || Type.enumConstructor(ex) == "EUnexpected")
+			if( e == "EInvalidChar" || 
+				e == "EUnexpected")
 				throw InvalidStatement;
-			throw InvalidCommand(Type.enumConstructor(ex) + ": " + Type.enumParameters(ex)[0]);
+			throw InvalidCommand( e + ": " + p[0] );
 		}
 		sb = new StringBuf();
-		return (ret==null) ? null : Std.string(ret);
+		return (ret==null||noReturn) ? null : Std.string(ret);
 	}
 
 	/**
@@ -166,9 +187,12 @@ class CmdProcessor {
 		cmdStr = reRe.replace(cmdStr, "new EReg(\"$1\",\"$2\")");
 		
 		if( ~/print\(/smg.match( cmdStr ) )
-			cmdStr = "function(){ __programreturn = \"\";" + replacePrint( cmdStr ) + "return __programreturn; }();";
+			cmdStr = "__r__=new StringBuf();" + replacePrint( cmdStr ) + "__r__.toString();";
+		else 
+			noReturn = true;
 		
-		trace( "preprocessed:" + cmdStr );
+		if( Ehx.DEBUG )
+			trace( "preprocessed:" + cmdStr );
 		
 		return cmdStr;
 	}
@@ -187,7 +211,7 @@ class CmdProcessor {
 			var print = StringTools.trim( str.substr( index , endIndex ) );
 			if( StringTools.endsWith( print , ";" ) ) 
 				print = print.substr( 0 , print.length - 1 );
-			ret.add( "__programreturn+=Std.string( " + print + ");" );
+			ret.add( "__r__.add(" + print + ");" );
 			// Update the search string (skip the last two chars: ");")
 			str = str.substr( index + endIndex + 2 );
 		}
@@ -217,85 +241,5 @@ class CmdProcessor {
 		return -1;
 	}
 
-	/**
-	return a list of all user defined variables
-	**/
-	private function listVars() : String {
-		var builtins = builtins;
-		var rootClasses = rootClasses;
-		var notBuiltin = function(kk) { return !Lambda.has(builtins, kk) && !Lambda.has(rootClasses, kk); }
-		var keys = findVars(notBuiltin);
-		var keyArray = Lambda.array(keys);
-		keyArray.sort(Reflect.compare);
-
-		if( keyArray.length>0 ) {
-			return wordWrap("Current variables: " + keyArray.join(", "));
-		} else
-			return "There are currently no variables";
-	}
-
-	/**
-	return a list of all builtin classes
-	**/
-	private function listBuiltins() : String {
-		var rootClasses = rootClasses;
-		var isBuiltin = function(kk) { return Lambda.has(rootClasses, kk); }
-		var keys = findVars(isBuiltin);
-		keys = Lambda.map(keys, function(ii) { return StringTools.replace(ii,'_','.'); });
-		var keyArray = Lambda.array(keys);
-		keyArray.sort(Reflect.compare);
-
-		if( keyArray.length > 0 ) {
-			return wordWrap("Builtins: " + keyArray.join(", "));
-		} else
-			return "There are no builtins.  Something must have gone wrong.";
-	}
-
-	/**
-	clear all user defined variables
-	**/
-	private function clearVars() : String {
-		var builtins = builtins;
-		var rootClasses = rootClasses;
-		var notBuiltin = function(kk) { return !Lambda.has(builtins, kk) && !Lambda.has(rootClasses, kk); }
-		var keys = findVars(notBuiltin);
-
-		for( kk in keys )
-			interp.variables.remove(kk);
-		return null;
-	}
-
-	private function findVars(check:String->Bool) {
-		var keys = new List<String>();
-		for( kk in interp.variables.keys() )
-			keys.add(kk);
-
-		var builtins = builtins;
-		var rootClasses = rootClasses;
-		return keys.filter(check);
-	}
-
-	private function wordWrap(str:String) : String {
-		if( str.length<=80 )
-			return str;
-
-		var words : Array<String> = str.split(" ");
-		var sb = new StringBuf();
-		var ii = 0; // index of current word
-		var oo = 1; // index of current output line
-		while( ii<words.length ) {
-			while( ii<words.length && sb.toString().length+words[ii].length+1<80*oo ) {
-				if( ii!=0 )
-					sb.add(" ");
-				sb.add(words[ii]);
-				ii++;
-			}
-			if( ii<words.length ) {
-				sb.add("\n    ");
-				oo++;
-			}
-		}
-		return sb.toString();
-	}
 
 }
